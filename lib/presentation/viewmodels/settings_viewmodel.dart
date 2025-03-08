@@ -7,7 +7,7 @@ class SettingsViewModel extends ChangeNotifier {
   final UserSettingsRepository _settingsRepository;
 
   UserSettings? _settings;
-  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode _themeMode = ThemeMode.light; // Початкове значення
   bool _isLoading = false;
   String? _error;
 
@@ -49,6 +49,7 @@ class SettingsViewModel extends ChangeNotifier {
         notifyListeners();
       },
           (themeMode) {
+        print('Завантажено тему: $themeMode'); // Debugging
         _themeMode = themeMode;
         notifyListeners();
       },
@@ -78,6 +79,7 @@ class SettingsViewModel extends ChangeNotifier {
   }
 
   Future<bool> setThemeMode(ThemeMode mode) async {
+    print('Встановлюємо тему в ViewModel: $mode'); // Debugging
     final result = await _settingsRepository.saveThemeMode(mode);
     return result.fold(
           (failure) {

@@ -1,8 +1,10 @@
+// lib/core/di/injection_container.dart
 import 'package:get_it/get_it.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../data/datasources/database_helper.dart';
+import '../../data/datasources/local_storage_service.dart';
 import '../../data/repositories/gesture_repository_impl.dart';
 import '../../data/repositories/recognition_result_repository_impl.dart';
 import '../../data/repositories/auth_repository_impl.dart';
@@ -25,6 +27,10 @@ final GetIt sl = GetIt.instance;
 
 /// Ініціалізація dependency injection
 Future<void> init() async {
+  // LocalStorage Service - ініціалізуємо раніше, щоб інші сервіси могли його використовувати
+  final localStorageService = await LocalStorageService.init();
+  sl.registerLazySingleton<LocalStorageService>(() => localStorageService);
+
   // ViewModels
   sl.registerFactory(() => BluetoothViewModel(sl()));
   sl.registerFactory(() => RecognitionViewModel(sl(), sl()));
@@ -40,7 +46,7 @@ Future<void> init() async {
   sl.registerLazySingleton<RecognitionResultRepository>(
           () => RecognitionResultRepositoryImpl(sl(), sl())
   );
-  sl.registerLazySingleton<UserSettingsRepository>(() => UserSettingsRepositoryImpl(sl()));
+  sl.registerLazySingleton<UserSettingsRepository>(() => UserSettingsRepositoryImpl(sl(), sl()));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
     firebaseAuth: sl(),
     googleSignIn: sl(),

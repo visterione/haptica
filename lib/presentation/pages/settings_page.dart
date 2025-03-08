@@ -230,7 +230,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsViewModel = Provider.of<SettingsViewModel>(context, listen: false);
 
     // Збереження теми
-    await settingsViewModel.setThemeMode(_selectedThemeMode);
+    print('Зберігаємо тему: $_selectedThemeMode'); // Debugging
+    final themeSaved = await settingsViewModel.setThemeMode(_selectedThemeMode);
+    print('Результат збереження теми: $themeSaved'); // Debugging
 
     // Збереження інших налаштувань, якщо модель доступна
     if (settingsViewModel.settings != null) {
@@ -241,6 +243,7 @@ class _SettingsPageState extends State<SettingsPage> {
         language: _selectedLanguage,
         hapticFeedback: _hapticFeedbackEnabled,
         showOnboarding: _showHints,
+        themeMode: _selectedThemeMode, // Також додаємо тему тут
         updatedAt: DateTime.now(),
       );
 

@@ -67,30 +67,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'Перекладач жестів',
+      title: 'Haptica',
       currentTab: AppTab.home,
-      actions: [
-        // Кнопка підключення Bluetooth
-        Consumer<BluetoothViewModel>(
-          builder: (context, bluetoothViewModel, child) {
-            final isConnected = bluetoothViewModel.isConnected;
-
-            return IconButton(
-              icon: Icon(
-                isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-                color: isConnected ? AppTheme.successColor : AppTheme.textColor,
-              ),
-              tooltip: isConnected ? 'Підключено' : 'Підключити пристрій',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BluetoothPage()),
-                );
-              },
-            );
-          },
-        ),
-      ],
+      // Видаляємо список дій, який включав кнопку Bluetooth
       body: GestureDetector(
         onTap: () {
           // Зняття фокусу при натисканні поза полем введення
