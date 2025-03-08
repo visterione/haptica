@@ -109,6 +109,16 @@ class ProfilePage extends StatelessWidget {
           },
         ),
 
+        // Додаємо новий ListTile для "Допомога та підтримка"
+        ListTile(
+          leading: const Icon(Icons.help_outline),
+          title: const Text('Допомога та підтримка'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).pushNamed(AppRouter.help);
+          },
+        ),
+
         ListTile(
           leading: const Icon(Icons.device_hub),
           title: const Text('Мої пристрої'),

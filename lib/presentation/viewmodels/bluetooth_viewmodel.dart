@@ -1,21 +1,22 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/sensor_data.dart';
-import '../../domain/services/bluetooth_service.dart';
+// Імпортуємо з аліасом, щоб уникнути конфліктів імен
+import '../../domain/services/bluetooth_service.dart' as app_bluetooth;
 
 /// ViewModel для роботи з Bluetooth
 class BluetoothViewModel extends ChangeNotifier {
   /// Сервіс Bluetooth
-  final BluetoothManagerService _bluetoothService;
+  final app_bluetooth.BluetoothManagerService _bluetoothService;
 
   /// Список доступних пристроїв
-  List<BluetoothDevice> _devices = [];
+  List<app_bluetooth.BluetoothDevice> _devices = [];
 
   /// Поточний статус підключення
-  BluetoothConnectionStatus _connectionStatus = BluetoothConnectionStatus.disconnected;
+  app_bluetooth.BluetoothConnectionStatus _connectionStatus = app_bluetooth.BluetoothConnectionStatus.disconnected;
 
   /// Обраний пристрій
-  BluetoothDevice? _selectedDevice;
+  app_bluetooth.BluetoothDevice? _selectedDevice;
 
   /// Прапорець сканування
   bool _isScanning = false;
@@ -55,13 +56,13 @@ class BluetoothViewModel extends ChangeNotifier {
   }
 
   /// Список доступних пристроїв
-  List<BluetoothDevice> get devices => _devices;
+  List<app_bluetooth.BluetoothDevice> get devices => _devices;
 
   /// Поточний статус підключення
-  BluetoothConnectionStatus get connectionStatus => _connectionStatus;
+  app_bluetooth.BluetoothConnectionStatus get connectionStatus => _connectionStatus;
 
   /// Обраний пристрій
-  BluetoothDevice? get selectedDevice => _selectedDevice;
+  app_bluetooth.BluetoothDevice? get selectedDevice => _selectedDevice;
 
   /// Прапорець сканування
   bool get isScanning => _isScanning;
@@ -70,7 +71,7 @@ class BluetoothViewModel extends ChangeNotifier {
   SensorData? get lastSensorData => _lastSensorData;
 
   /// Перевірка, чи підключено пристрій
-  bool get isConnected => _connectionStatus == BluetoothConnectionStatus.connected;
+  bool get isConnected => _connectionStatus == app_bluetooth.BluetoothConnectionStatus.connected;
 
   /// Перевірка дозволів Bluetooth
   Future<bool> checkPermissions() async {
@@ -103,7 +104,7 @@ class BluetoothViewModel extends ChangeNotifier {
   }
 
   /// Підключення до пристрою
-  Future<bool> connectToDevice(BluetoothDevice device) async {
+  Future<bool> connectToDevice(app_bluetooth.BluetoothDevice device) async {
     _selectedDevice = device;
     notifyListeners();
 
@@ -123,17 +124,17 @@ class BluetoothViewModel extends ChangeNotifier {
   /// Отримання назви статусу підключення
   String getStatusName() {
     switch (_connectionStatus) {
-      case BluetoothConnectionStatus.connected:
+      case app_bluetooth.BluetoothConnectionStatus.connected:
         return 'Підключено';
-      case BluetoothConnectionStatus.disconnected:
+      case app_bluetooth.BluetoothConnectionStatus.disconnected:
         return 'Відключено';
-      case BluetoothConnectionStatus.connecting:
+      case app_bluetooth.BluetoothConnectionStatus.connecting:
         return 'Підключення...';
-      case BluetoothConnectionStatus.disconnecting:
+      case app_bluetooth.BluetoothConnectionStatus.disconnecting:
         return 'Відключення...';
-      case BluetoothConnectionStatus.disabled:
+      case app_bluetooth.BluetoothConnectionStatus.disabled:
         return 'Bluetooth вимкнено';
-      case BluetoothConnectionStatus.unauthorized:
+      case app_bluetooth.BluetoothConnectionStatus.unauthorized:
         return 'Немає дозволу';
     }
   }

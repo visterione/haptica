@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:haptica/presentation/viewmodels/speech_to_text_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/constants/app_theme.dart';
@@ -54,6 +55,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => di.sl<AuthViewModel>(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => di.sl<SpeechToTextViewModel>(),  // Додано новий провайдер
         ),
       ],
       child: Consumer<SettingsViewModel>(

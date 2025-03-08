@@ -4,8 +4,8 @@ import '../../core/constants/app_theme.dart';
 import '../navigation/app_router.dart';
 
 enum AppTab {
-  home,
-  help,
+  gestures,  // Змінено з home на gestures
+  microphone,  // Змінено з help на microphone
   profile,
 }
 
@@ -15,6 +15,7 @@ class AppScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final AppTab currentTab;
   final bool showBottomNavigation;
+  final Widget? floatingActionButton; // Додано новий параметр
 
   const AppScaffold({
     Key? key,
@@ -23,6 +24,7 @@ class AppScaffold extends StatelessWidget {
     this.actions,
     required this.currentTab,
     this.showBottomNavigation = true,
+    this.floatingActionButton, // Додано параметр в конструктор
   }) : super(key: key);
 
   @override
@@ -46,31 +48,31 @@ class AppScaffold extends StatelessWidget {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Головна',
+            icon: Icon(Icons.gesture),
+            label: 'Жести',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.help),
-            label: 'Допомога',
+            icon: Icon(Icons.mic),
+            label: 'Мікрофон',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Профіль',
           ),
         ],
-      )
-          : null,
+      ) : null,
+      floatingActionButton: floatingActionButton, // Додано FAB
     );
   }
 
   void _navigateToTab(BuildContext context, AppTab tab) {
     String route;
     switch (tab) {
-      case AppTab.home:
+      case AppTab.gestures:  // Змінено з home на gestures
         route = AppRouter.home;
         break;
-      case AppTab.help:
-        route = AppRouter.help;
+      case AppTab.microphone:  // Змінено з help на microphone
+        route = AppRouter.speechToText;  // Змінено маршрут
         break;
       case AppTab.profile:
         route = AppRouter.profile;

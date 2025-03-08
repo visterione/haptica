@@ -10,7 +10,8 @@ class HelpPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       title: 'Допомога',
-      currentTab: AppTab.help,
+      currentTab: AppTab.profile, // Змінено з AppTab.help на AppTab.profile, оскільки сторінка
+      // тепер доступна через профіль, а не як окрема вкладка
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.paddingMedium),
         children: [

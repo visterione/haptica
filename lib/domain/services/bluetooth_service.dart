@@ -1,7 +1,12 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../core/utils/bluetooth_data_parser.dart';
 import '../entities/sensor_data.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as dev_flutter_blue_plus;
 
 /// Статус Bluetooth з'єднання
 enum BluetoothConnectionStatus {
@@ -24,7 +29,7 @@ enum BluetoothConnectionStatus {
   unauthorized,
 }
 
-/// Клас, що імітує Bluetooth-пристрій
+/// Клас, що представляє Bluetooth-пристрій
 class BluetoothDevice {
   /// Адреса пристрою
   final String address;
@@ -32,8 +37,15 @@ class BluetoothDevice {
   /// Назва пристрою
   final String? name;
 
+  /// Нативний BluetoothDevice (flutter_blue_plus)
+  final dynamic nativeDevice;
+
   /// Конструктор
-  BluetoothDevice({required this.address, this.name});
+  BluetoothDevice({
+    required this.address,
+    this.name,
+    required this.nativeDevice
+  });
 }
 
 /// Інтерфейс для сервісу роботи з Bluetooth
@@ -69,46 +81,57 @@ abstract class BluetoothManagerService {
   Future<bool> enableBluetooth();
 }
 
-/// Симуляція сервісу Bluetooth
+/// Реалізація сервісу Bluetooth з використанням flutter_blue_plus
 class BluetoothManagerServiceImpl implements BluetoothManagerService {
-  /// Фіктивні пристрої
-  final List<BluetoothDevice> _mockDevices = [
-    BluetoothDevice(address: '00:11:22:33:44:55', name: 'Смарт-рукавичка'),
-    BluetoothDevice(address: 'AA:BB:CC:DD:EE:FF', name: 'Перекладач жестів'),
-    BluetoothDevice(address: '11:22:33:44:55:66', name: 'Sign Language Translator'),
-    BluetoothDevice(address: 'FF:EE:DD:CC:BB:AA', name: 'Жестова рукавичка'),
-  ];
+  /// UUID сервісу для даних сенсорів (замініть на реальний UUID вашого пристрою)
+  static const String SENSOR_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+
+  /// UUID характеристики для даних сенсорів (замініть на реальний UUID вашого пристрою)
+  static const String SENSOR_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+  /// Інтервал сканування
+  static const Duration SCAN_DURATION = Duration(seconds: 4);
 
   /// Підключений пристрій
   BluetoothDevice? _connectedDevice;
 
-  /// Контролер для потоку статусу з'єднання
+  /// Статус з'єднання
+  BluetoothConnectionStatus _status = BluetoothConnectionStatus.disconnected;
+
+  /// Контролер для потоку статусу
   final StreamController<BluetoothConnectionStatus> _statusController =
   StreamController<BluetoothConnectionStatus>.broadcast();
 
-  /// Контролер для потоку сенсорних даних
+  /// Контролер для потоку даних сенсорів
   final StreamController<SensorData> _dataController =
   StreamController<SensorData>.broadcast();
 
-  /// Поточний статус з'єднання
-  BluetoothConnectionStatus _status = BluetoothConnectionStatus.disconnected;
-
-  /// Таймер для генерації даних
-  Timer? _dataGenerationTimer;
-
-  /// Генератор випадкових чисел
-  final Random _random = Random();
+  /// Підписка на потік даних
+  StreamSubscription? _dataSubscription;
 
   /// Конструктор
   BluetoothManagerServiceImpl() {
-    // Ініціалізуємо з відключеним станом
-    _updateStatus(BluetoothConnectionStatus.disconnected);
+    _initializeBluetooth();
   }
 
-  /// Оновлення статусу з'єднання
-  void _updateStatus(BluetoothConnectionStatus newStatus) {
-    _status = newStatus;
-    _statusController.add(newStatus);
+  /// Ініціалізація Bluetooth
+  Future<void> _initializeBluetooth() async {
+    // Підписка на зміни стану Bluetooth
+    FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
+      if (state == BluetoothAdapterState.on) {
+        if (_status == BluetoothConnectionStatus.disabled) {
+          _updateStatus(BluetoothConnectionStatus.disconnected);
+        }
+      } else if (state == BluetoothAdapterState.off) {
+        _updateStatus(BluetoothConnectionStatus.disabled);
+      }
+    });
+
+    // Початкова перевірка стану
+    final state = await FlutterBluePlus.adapterState.first;
+    if (state != BluetoothAdapterState.on) {
+      _updateStatus(BluetoothConnectionStatus.disabled);
+    }
   }
 
   @override
@@ -120,18 +143,85 @@ class BluetoothManagerServiceImpl implements BluetoothManagerService {
   @override
   Stream<SensorData> get dataStream => _dataController.stream;
 
+  /// Оновлення статусу з'єднання
+  void _updateStatus(BluetoothConnectionStatus newStatus) {
+    if (_status != newStatus) {
+      _status = newStatus;
+      _statusController.add(newStatus);
+    }
+  }
+
   @override
   Future<bool> requestPermissions() async {
-    // Симуляція запиту дозволів
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
+    // Дозволи, які потрібні для Bluetooth на Android 12+
+    List<Permission> permissions = [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ];
+
+    // Запит дозволів
+    Map<Permission, PermissionStatus> statuses = await permissions.request();
+
+    // Перевірка, чи всі дозволи надані
+    bool allGranted = true;
+    statuses.forEach((permission, status) {
+      if (!status.isGranted) {
+        allGranted = false;
+      }
+    });
+
+    return allGranted;
   }
 
   @override
   Future<List<BluetoothDevice>> scanForDevices() async {
-    // Симуляція процесу сканування
-    await Future.delayed(const Duration(seconds: 2));
-    return _mockDevices;
+    List<BluetoothDevice> devices = [];
+
+    // Перевірка, чи Bluetooth увімкнено
+    if (!await isBluetoothEnabled()) {
+      return devices;
+    }
+
+    _updateStatus(BluetoothConnectionStatus.disconnected);
+
+    // Почати сканування
+    if (FlutterBluePlus.isScanningNow) {
+      await FlutterBluePlus.stopScan();
+    }
+
+    try {
+      // Очікуємо результатів сканування
+      var completer = Completer<List<BluetoothDevice>>();
+
+      // Сканування з часовим обмеженням
+      await FlutterBluePlus.startScan(timeout: SCAN_DURATION);
+
+      // Отримуємо результати сканування
+      List<ScanResult> scanResults = await FlutterBluePlus.scanResults.first;
+
+      // Фільтрація і перетворення результатів
+      for (ScanResult result in scanResults) {
+        if (result.device.advName.isNotEmpty) {
+          devices.add(BluetoothDevice(
+            address: result.device.remoteId.str,
+            name: result.device.advName,
+            nativeDevice: result.device,
+          ));
+        }
+      }
+
+      return devices;
+    } catch (e) {
+      debugPrint('Помилка при скануванні Bluetooth: $e');
+      return devices;
+    } finally {
+      // Зупинити сканування, якщо воно ще триває
+      if (FlutterBluePlus.isScanningNow) {
+        await FlutterBluePlus.stopScan();
+      }
+    }
   }
 
   @override
@@ -142,16 +232,69 @@ class BluetoothManagerServiceImpl implements BluetoothManagerService {
 
     _updateStatus(BluetoothConnectionStatus.connecting);
 
-    // Симуляція процесу підключення
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Отримуємо нативний пристрій
+      final nativeDevice = device.nativeDevice as dev_flutter_blue_plus.BluetoothDevice;
 
-    _connectedDevice = device;
-    _updateStatus(BluetoothConnectionStatus.connected);
+      // Підключення до пристрою
+      await nativeDevice.connect(autoConnect: false);
 
-    // Запуск генерації даних
-    _startDataGeneration();
+      // Отримуємо сервіси
+      List<BluetoothService> services = await nativeDevice.discoverServices();
 
-    return true;
+      // Шукаємо наш сервіс і характеристику
+      BluetoothService? sensorService;
+      BluetoothCharacteristic? sensorCharacteristic;
+
+      for (BluetoothService service in services) {
+        if (service.uuid.toString() == SENSOR_SERVICE_UUID) {
+          sensorService = service;
+          for (BluetoothCharacteristic characteristic in service.characteristics) {
+            if (characteristic.uuid.toString() == SENSOR_CHARACTERISTIC_UUID) {
+              sensorCharacteristic = characteristic;
+              break;
+            }
+          }
+          break;
+        }
+      }
+
+      // Перевіряємо, чи знайдені потрібні сервіс і характеристика
+      if (sensorService == null || sensorCharacteristic == null) {
+        throw Exception("Потрібні сервіси або характеристики не знайдені в пристрої");
+      }
+
+      // Підписуємося на отримання даних
+      await sensorCharacteristic.setNotifyValue(true);
+      _dataSubscription = sensorCharacteristic.onValueReceived.listen((data) {
+        _handleSensorData(data);
+      });
+
+      // Зберігаємо підключений пристрій
+      _connectedDevice = device;
+      _updateStatus(BluetoothConnectionStatus.connected);
+
+      return true;
+    } catch (e) {
+      debugPrint('Помилка підключення до Bluetooth: $e');
+      await disconnect();
+      return false;
+    }
+  }
+
+  /// Обробка даних сенсорів
+  void _handleSensorData(List<int> data) {
+    try {
+      // Використовуємо наш парсер для розбору даних від пристрою
+      SensorData? sensorData = BluetoothDataParser.parseSensorData(data);
+
+      if (sensorData != null) {
+        // Надсилаємо дані через потік
+        _dataController.add(sensorData);
+      }
+    } catch (e) {
+      debugPrint('Помилка обробки даних сенсорів: $e');
+    }
   }
 
   @override
@@ -162,95 +305,57 @@ class BluetoothManagerServiceImpl implements BluetoothManagerService {
 
     _updateStatus(BluetoothConnectionStatus.disconnecting);
 
-    // Зупинка генерації даних
-    _stopDataGeneration();
+    try {
+      // Відписуємося від потоку даних
+      await _dataSubscription?.cancel();
+      _dataSubscription = null;
 
-    // Симуляція процесу відключення
-    await Future.delayed(const Duration(milliseconds: 500));
+      // Відключення від пристрою
+      if (_connectedDevice != null) {
+        final nativeDevice = _connectedDevice!.nativeDevice as dev_flutter_blue_plus.BluetoothDevice;
+        await nativeDevice.disconnect();
+      }
 
-    _connectedDevice = null;
-    _updateStatus(BluetoothConnectionStatus.disconnected);
+      _connectedDevice = null;
+      _updateStatus(BluetoothConnectionStatus.disconnected);
 
-    return true;
+      return true;
+    } catch (e) {
+      debugPrint('Помилка відключення Bluetooth: $e');
+      _updateStatus(BluetoothConnectionStatus.disconnected);
+      return false;
+    }
   }
 
   @override
   Future<bool> isBluetoothAvailable() async {
-    // Симуляція перевірки доступності Bluetooth
-    return true;
+    // Перевірка доступності Bluetooth
+    final state = await FlutterBluePlus.adapterState.first;
+    return state != BluetoothAdapterState.unavailable;
   }
 
   @override
   Future<bool> isBluetoothEnabled() async {
-    // Симуляція перевірки увімкнення Bluetooth
-    return true;
+    // Перевірка, чи увімкнений Bluetooth
+    final state = await FlutterBluePlus.adapterState.first;
+    return state == BluetoothAdapterState.on;
   }
 
   @override
   Future<bool> enableBluetooth() async {
-    // Симуляція увімкнення Bluetooth
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
-  }
-
-  /// Запуск генерації даних
-  void _startDataGeneration() {
-    // Зупиняємо попередній таймер, якщо він існує
-    _stopDataGeneration();
-
-    // Запускаємо новий таймер для генерації даних кожні 500 мс
-    _dataGenerationTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      // Генеруємо випадкові дані сенсорів
-      final sensorData = _generateRandomSensorData();
-
-      // Відправляємо дані
-      _dataController.add(sensorData);
-    });
-  }
-
-  /// Зупинка генерації даних
-  void _stopDataGeneration() {
-    _dataGenerationTimer?.cancel();
-    _dataGenerationTimer = null;
-  }
-
-  /// Генерація випадкових даних сенсорів
-  SensorData _generateRandomSensorData() {
-    // Генеруємо випадкові значення акселерометра (-1.0 до 1.0)
-    final accelerometerData = AccelerometerData(
-      x: (_random.nextDouble() * 2.0) - 1.0,
-      y: (_random.nextDouble() * 2.0) - 1.0,
-      z: (_random.nextDouble() * 2.0) - 1.0,
-    );
-
-    // Генеруємо випадкові значення гіроскопа (-2.0 до 2.0)
-    final gyroscopeData = GyroscopeData(
-      x: (_random.nextDouble() * 4.0) - 2.0,
-      y: (_random.nextDouble() * 4.0) - 2.0,
-      z: (_random.nextDouble() * 4.0) - 2.0,
-    );
-
-    // Генеруємо випадкові значення згину пальців (0.0 до 1.0)
-    // Припускаємо, що у нас 5 пальців
-    final flexValues = List<double>.generate(
-      5,
-          (_) => _random.nextDouble(),
-    );
-
-    final flexSensorData = FlexSensorData(values: flexValues);
-
-    // Створюємо повний набір даних з часовою міткою
-    return SensorData(
-      accelerometer: accelerometerData,
-      gyroscope: gyroscopeData,
-      flexSensors: flexSensorData,
-      timestamp: DateTime.now(),
-    );
+    // На iOS не можемо програмно увімкнути Bluetooth, лише запитати користувача
+    try {
+      await FlutterBluePlus.turnOn();
+      return true;
+    } catch (e) {
+      debugPrint('Неможливо увімкнути Bluetooth програмно: $e');
+      return false;
+    }
   }
 
   /// Звільнення ресурсів
   void dispose() {
-    _stopDataGeneration();
+    _dataSubscription?.cancel();
     _statusController.close();
     _dataController.close();
   }

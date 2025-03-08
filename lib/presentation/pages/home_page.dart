@@ -3,13 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
 import '../../core/constants/app_theme.dart';
-import '../../domain/entities/recognition_result.dart';
 import '../../domain/entities/sensor_data.dart';
 import '../../domain/services/bluetooth_service.dart';
 import '../viewmodels/bluetooth_viewmodel.dart';
 import '../viewmodels/recognition_viewmodel.dart';
 import '../widgets/app_button.dart';
-import '../widgets/recognition_result_card.dart';
 import '../widgets/app_scaffold.dart';
 import 'bluetooth_page.dart';
 
@@ -66,36 +64,56 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      title: 'Haptica',
-      currentTab: AppTab.home,
-      // Видаляємо список дій, який включав кнопку Bluetooth
-      body: GestureDetector(
-        onTap: () {
-          // Зняття фокусу при натисканні поза полем введення
-          FocusScope.of(context).unfocus();
-        },
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Верхня секція: статус Bluetooth
-              _buildBluetoothStatusSection(),
+    return Consumer<RecognitionViewModel>(
+      builder: (context, recognitionViewModel, child) {
+        final hasText = recognitionViewModel.recognizedText.isNotEmpty;
 
-              // Секція розпізнаного тексту
-              _buildRecognizedTextSection(),
+        return AppScaffold(
+          title: 'Haptica',
+          currentTab: AppTab.gestures,
+          body: GestureDetector(
+            onTap: () {
+              // Зняття фокусу при натисканні поза полем введення
+              FocusScope.of(context).unfocus();
+            },
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Верхня секція: статус Bluetooth
+                  _buildBluetoothStatusSection(),
 
-              // Індикатор процесу розпізнавання
-              _buildRecognitionIndicator(),
+                  // Секція розпізнаного тексту
+                  _buildRecognizedTextSection(),
 
-              // Кнопки управління
-              _buildControlButtons(),
+                  // Індикатор процесу розпізнавання
+                  _buildRecognitionIndicator(),
 
-              // Секція останніх розпізнаних жестів
-              _buildRecentRecognitionsSection(),
-            ],
+                  // Кнопки управління
+                  _buildControlButtons(),
+
+                  // Додаємо Spacer, щоб заповнити пустий простір
+                  const Spacer(),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+          // Додаємо плаваючу кнопку для копіювання, якщо є текст
+          floatingActionButton: hasText ? FloatingActionButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: recognitionViewModel.recognizedText));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Текст скопійовано в буфер обміну'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            backgroundColor: AppTheme.accentColor,
+            child: const Icon(Icons.content_copy),
+            tooltip: 'Копіювати текст',
+          ) : null,
+        );
+      },
     );
   }
 
@@ -198,7 +216,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         final text = recognitionViewModel.recognizedText;
 
         return Expanded(
-          flex: 3,
+          flex: 5, // Збільшуємо flex з 3 до 5, щоб секція займала більше місця
           child: Container(
             margin: const EdgeInsets.all(AppTheme.paddingMedium),
             padding: const EdgeInsets.all(AppTheme.paddingMedium),
@@ -392,36 +410,44 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         return Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.paddingMedium,
-            vertical: AppTheme.paddingRegular,
+            vertical: AppTheme.paddingLarge, // Збільшуємо відступ
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          child: Column(
             children: [
-              // Кнопка видалення
-              AppButton(
-                text: 'Видалити',
-                icon: Icons.backspace,
-                type: AppButtonType.secondary,
-                onPressed: () {
-                  recognitionViewModel.backspace();
-                },
+              // Рядок з кнопками для основних дій
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Кнопка пробілу
+                  AppButton(
+                    text: 'Пробіл',
+                    icon: Icons.space_bar,
+                    type: AppButtonType.secondary,
+                    onPressed: () {
+                      recognitionViewModel.addSpace();
+                    },
+                  ),
+
+                  // Кнопка видалення
+                  AppButton(
+                    text: 'Видалити',
+                    icon: Icons.backspace,
+                    type: AppButtonType.secondary,
+                    onPressed: () {
+                      recognitionViewModel.backspace();
+                    },
+                  ),
+                ],
               ),
 
-              // Кнопка пробілу
-              AppButton(
-                text: 'Пробіл',
-                icon: Icons.space_bar,
-                type: AppButtonType.secondary,
-                onPressed: () {
-                  recognitionViewModel.addSpace();
-                },
-              ),
+              const SizedBox(height: AppTheme.paddingMedium),
 
-              // Кнопка очищення
+              // Кнопка очищення внизу і ширша
               AppButton(
-                text: 'Очистити',
+                text: 'Очистити все',
                 icon: Icons.clear_all,
                 type: AppButtonType.danger,
+                size: const Size(200, 48), // Збільшуємо розмір кнопки
                 onPressed: () {
                   recognitionViewModel.clearRecognizedText();
                 },
@@ -431,100 +457,5 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         );
       },
     );
-  }
-
-  /// Побудова секції останніх розпізнаних жестів
-  Widget _buildRecentRecognitionsSection() {
-    return Consumer<RecognitionViewModel>(
-      builder: (context, recognitionViewModel, child) {
-        final history = recognitionViewModel.history;
-
-        if (history.isEmpty) {
-          return const Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                'Історія розпізнавання порожня',
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: AppTheme.textLightColor,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Заголовок
-              const Padding(
-                padding: EdgeInsets.only(
-                  left: AppTheme.paddingMedium,
-                  top: AppTheme.paddingMedium,
-                  bottom: AppTheme.paddingRegular,
-                ),
-                child: Text(
-                  'Останні розпізнані жести',
-                  style: TextStyle(
-                    fontSize: AppTheme.fontSizeMedium,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textColor,
-                  ),
-                ),
-              ),
-
-              // Список жестів
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.paddingMedium),
-                  itemCount: history.length,
-                  itemBuilder: (context, index) {
-                    final result = history[index];
-                    return RecognitionResultCard(
-                      result: result,
-                      onTap: () {
-                        _onRecognitionResultTap(result);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// Обробник натиснення на результат розпізнавання
-  void _onRecognitionResultTap(RecognitionResult result) {
-    // Додавання тексту жесту до розпізнаного тексту
-    final recognitionViewModel = Provider.of<RecognitionViewModel>(context, listen: false);
-    // Процес додавання тексту до поточного розпізнаного тексту
-    final currentText = recognitionViewModel.recognizedText;
-
-    // Якщо текст - літера, просто додаємо її
-    final gestureText = result.gesture.name;
-    if (gestureText.length == 1) {
-      recognitionViewModel.clearRecognizedText();
-      // Додаємо новий текст
-      final newText = currentText + gestureText;
-      recognitionViewModel.updateRecognizedText(newText);
-    }
-    // Якщо це цифра або загальний жест, додаємо пробіл перед ним
-    else {
-      recognitionViewModel.clearRecognizedText();
-      // Додаємо пробіл, якщо потрібно
-      String newText;
-      if (currentText.isNotEmpty && !currentText.endsWith(' ')) {
-        newText = currentText + ' ' + gestureText;
-      } else {
-        newText = currentText + gestureText;
-      }
-      recognitionViewModel.updateRecognizedText(newText);
-    }
   }
 }
