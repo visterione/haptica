@@ -21,6 +21,7 @@ import '../../presentation/viewmodels/bluetooth_viewmodel.dart';
 import '../../presentation/viewmodels/recognition_viewmodel.dart';
 import '../../presentation/viewmodels/settings_viewmodel.dart';
 import '../../presentation/viewmodels/auth_viewmodel.dart';
+import '../../presentation/viewmodels/speech_to_text_viewmodel.dart';
 
 /// Глобальний ServiceLocator
 final GetIt sl = GetIt.instance;
@@ -36,6 +37,7 @@ Future<void> init() async {
   sl.registerFactory(() => RecognitionViewModel(sl(), sl()));
   sl.registerFactory(() => SettingsViewModel(sl()));
   sl.registerFactory(() => AuthViewModel(sl()));
+  sl.registerFactory(() => SpeechToTextViewModel());
 
   // Use cases
   sl.registerLazySingleton(() => RecognizeGestureUseCase(sl(), sl(), sl()));

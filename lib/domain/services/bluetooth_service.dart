@@ -175,49 +175,62 @@ class BluetoothManagerServiceImpl implements BluetoothManagerService {
     return allGranted;
   }
 
-  @override
   Future<List<BluetoothDevice>> scanForDevices() async {
     List<BluetoothDevice> devices = [];
 
+    // Перевірка дозволів
+    if (!await requestPermissions()) {
+      _updateStatus(BluetoothConnectionStatus.unauthorized);
+      return devices;
+    }
+
     // Перевірка, чи Bluetooth увімкнено
     if (!await isBluetoothEnabled()) {
+      _updateStatus(BluetoothConnectionStatus.disabled);
       return devices;
     }
 
     _updateStatus(BluetoothConnectionStatus.disconnected);
 
-    // Почати сканування
+    // Зупинка попереднього сканування, якщо воно триває
     if (FlutterBluePlus.isScanningNow) {
       await FlutterBluePlus.stopScan();
     }
 
     try {
-      // Очікуємо результатів сканування
-      var completer = Completer<List<BluetoothDevice>>();
-
-      // Сканування з часовим обмеженням
+      // Починаємо сканування
       await FlutterBluePlus.startScan(timeout: SCAN_DURATION);
 
-      // Отримуємо результати сканування
-      List<ScanResult> scanResults = await FlutterBluePlus.scanResults.first;
+      // Очікуємо завершення сканування
+      await Future.delayed(SCAN_DURATION);
 
-      // Фільтрація і перетворення результатів
-      for (ScanResult result in scanResults) {
-        if (result.device.advName.isNotEmpty) {
-          devices.add(BluetoothDevice(
-            address: result.device.remoteId.str,
-            name: result.device.advName,
-            nativeDevice: result.device,
-          ));
+      // Зупиняємо сканування явно
+      await FlutterBluePlus.stopScan();
+
+      // Отримання сканованих пристроїв
+      List<dev_flutter_blue_plus.ScanResult> results = [];
+      // Конвертуємо Stream у List
+      await for (final results in FlutterBluePlus.scanResults) {
+        // Беремо тільки один список результатів
+        for (var result in results) {
+          // Додаємо пристрої з іменами або додаткова фільтрація за потреби
+          if (result.device.advName.isNotEmpty || result.device.remoteId.str.isNotEmpty) {
+            devices.add(BluetoothDevice(
+              address: result.device.remoteId.str,
+              name: result.device.advName.isNotEmpty ? result.device.advName : "Невідомий пристрій",
+              nativeDevice: result.device,
+            ));
+          }
         }
+        break; // Виходимо після першого набору результатів
       }
 
       return devices;
     } catch (e) {
-      debugPrint('Помилка при скануванні Bluetooth: $e');
+      debugPrint('Помилка під час сканування Bluetooth: $e');
       return devices;
     } finally {
-      // Зупинити сканування, якщо воно ще триває
+      // Завжди зупиняємо сканування
       if (FlutterBluePlus.isScanningNow) {
         await FlutterBluePlus.stopScan();
       }
