@@ -10,6 +10,7 @@ import '../viewmodels/bluetooth_viewmodel.dart';
 import '../viewmodels/recognition_viewmodel.dart';
 import '../widgets/app_button.dart';
 import '../widgets/recognition_result_card.dart';
+import '../widgets/app_scaffold.dart';
 import 'bluetooth_page.dart';
 
 /// Головний екран додатку
@@ -65,34 +66,31 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Перекладач жестів'),
-        centerTitle: true,
-        backgroundColor: AppTheme.primaryColor,
-        actions: [
-          // Кнопка підключення Bluetooth
-          Consumer<BluetoothViewModel>(
-            builder: (context, bluetoothViewModel, child) {
-              final isConnected = bluetoothViewModel.isConnected;
+    return AppScaffold(
+      title: 'Перекладач жестів',
+      currentTab: AppTab.home,
+      actions: [
+        // Кнопка підключення Bluetooth
+        Consumer<BluetoothViewModel>(
+          builder: (context, bluetoothViewModel, child) {
+            final isConnected = bluetoothViewModel.isConnected;
 
-              return IconButton(
-                icon: Icon(
-                  isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-                  color: isConnected ? AppTheme.successColor : AppTheme.textColor,
-                ),
-                tooltip: isConnected ? 'Підключено' : 'Підключити пристрій',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const BluetoothPage()),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
+            return IconButton(
+              icon: Icon(
+                isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
+                color: isConnected ? AppTheme.successColor : AppTheme.textColor,
+              ),
+              tooltip: isConnected ? 'Підключено' : 'Підключити пристрій',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BluetoothPage()),
+                );
+              },
+            );
+          },
+        ),
+      ],
       body: GestureDetector(
         onTap: () {
           // Зняття фокусу при натисканні поза полем введення

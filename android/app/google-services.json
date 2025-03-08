@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "993675973198",
+    "project_id": "haptica-bc48a",
+    "storage_bucket": "haptica-bc48a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993675973198:android:18a5a006ab16bbf81a291f",
+        "android_client_info": {
+          "package_name": "com.example.haptica"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "993675973198-an2strehfdhot9126flq4dbcls7opu01.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.haptica",
+            "certificate_hash": "8505084a0f1e2e4a016554b13c46f7b1316f7585"
+          }
+        },
+        {
+          "client_id": "993675973198-8mdd84qs4pk1r586d5kvfiriin0tq49b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0wOR3kQaZUSRQpzg0x7j8IWKtlNxQgYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "993675973198-8mdd84qs4pk1r586d5kvfiriin0tq49b.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

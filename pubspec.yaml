@@ -44,6 +44,11 @@ dependencies:
   uuid: ^3.0.7
   equatable: ^2.0.5
 
+  # Firebase
+  firebase_core: ^2.15.0
+  firebase_auth: ^4.7.2
+  google_sign_in: ^6.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -59,6 +64,7 @@ flutter:
     - assets/icons/
     - assets/animations/
     - assets/ml/
+    - assets/images/google_logo.png
 
   fonts:
     - family: Montserrat

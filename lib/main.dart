@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/constants/app_theme.dart';
 import 'core/di/injection_container.dart' as di;
 import 'presentation/pages/home_page.dart';
 import 'presentation/viewmodels/bluetooth_viewmodel.dart';
 import 'presentation/viewmodels/recognition_viewmodel.dart';
+import 'presentation/viewmodels/settings_viewmodel.dart';
+import 'presentation/viewmodels/auth_viewmodel.dart';
+import 'presentation/navigation/app_router.dart';
+import 'firebase_options.dart';
 
 void main() async {
   // Ініціалізація Flutter
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Ініціалізація Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Встановлення орієнтації екрану
   await SystemChrome.setPreferredOrientations([
@@ -39,12 +49,25 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => di.sl<RecognitionViewModel>(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => di.sl<SettingsViewModel>(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => di.sl<AuthViewModel>(),
+        ),
       ],
-      child: MaterialApp(
-        title: 'Перекладач жестів',
-        theme: AppTheme.lightTheme,
-        home: const HomePage(),
-        debugShowCheckedModeBanner: false,
+      child: Consumer<SettingsViewModel>(
+        builder: (context, settingsViewModel, child) {
+          return MaterialApp(
+            title: 'Перекладач жестів',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settingsViewModel.themeMode,
+            initialRoute: AppRouter.home,
+            routes: AppRouter.getRoutes(),
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
     );
   }
